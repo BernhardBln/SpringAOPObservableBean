@@ -2,7 +2,6 @@ package de.bstreit.java.springaop.observablebean;
 
 import java.beans.PropertyChangeSupport;
 
-import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 
 /**
@@ -12,7 +11,7 @@ import org.aspectj.lang.annotation.Before;
  * @author Bernhard Streit (Bernhard.Streit+github@gmail.com)
  */
 // @Named
-@Aspect
+// @Aspect
 public class ObservableBeanAspect {
 
 
