@@ -2,8 +2,11 @@ package de.bstreit.java.springaop.observablebean;
 
 import javax.inject.Named;
 
-@ObservableBean
+import org.springframework.context.annotation.Scope;
+
 @Named
+@ObservableBean
+@Scope("prototype")
 public class MyBean implements IMyBean {
 
   private String field;
