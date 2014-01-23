@@ -8,13 +8,13 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 /**
- * Helper class to have {@link PropertyChangeSupport} implement the
- * {@link IObservableBean} interface.
+ * Internal helper class, one instance per proxied object, manages listener
+ * registration and fires the change event.
  * 
  * @author Bernhard Streit (Bernhard.Streit+github@gmail.com)
  */
-public class PropertyChangeSupportWithInterface
-    implements IObservableBean {
+class PropertyChangeSupportWithInterface implements IObservableBean
+{
 
   private PropertyChangeSupport pcs;
   private BeanWrapper beanWrapper;
@@ -30,40 +30,55 @@ public class PropertyChangeSupportWithInterface
     pcs.addPropertyChangeListener(listener);
   }
 
+
   public void removePropertyChangeListener(PropertyChangeListener listener) {
     pcs.removePropertyChangeListener(listener);
   }
+
 
   public PropertyChangeListener[] getPropertyChangeListeners() {
     return pcs.getPropertyChangeListeners();
   }
 
+
   public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
     pcs.addPropertyChangeListener(propertyName, listener);
   }
+
 
   public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
     pcs.removePropertyChangeListener(propertyName, listener);
   }
 
+
   public PropertyChangeListener[] getPropertyChangeListeners(String propertyName) {
     return pcs.getPropertyChangeListeners(propertyName);
   }
 
-  @Override
+
   public boolean hasListeners(String propertyName) {
     return pcs.hasListeners(propertyName);
   }
 
-
+  /**
+   * Retrieve old and new value, invoke setter and finally fire property change
+   * event.
+   * 
+   * @param pjp
+   * @throws Throwable
+   */
   void handleSetterInvocation(ProceedingJoinPoint pjp) throws Throwable {
-    // should the first letter be lower or upper case?
-    final String propValue = pjp.getSignature().getName().substring(3);
+    // the method name is "setPropertyName", hence stripping of the "set"
+    // from the beginning gives us "PropertyName"
+    final String propertyName = pjp.getSignature().getName().substring(3);
 
-    final Object oldValue = beanWrapper.getPropertyValue(propValue);
+    final Object oldValue = beanWrapper.getPropertyValue(propertyName);
     final Object newValue = pjp.getArgs()[0];
-    pjp.proceed();
-    pcs.firePropertyChange(propValue, oldValue, newValue);
-  }
 
+    // perform the setting
+    pjp.proceed();
+
+    // fire property change, if no exception occurred
+    pcs.firePropertyChange(propertyName, oldValue, newValue);
+  }
 }

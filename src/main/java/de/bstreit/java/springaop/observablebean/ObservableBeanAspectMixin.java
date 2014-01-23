@@ -1,6 +1,8 @@
 package de.bstreit.java.springaop.observablebean;
 
 import java.beans.PropertyChangeSupport;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import javax.inject.Named;
 
@@ -15,17 +17,18 @@ import org.aspectj.lang.annotation.DeclareMixin;
  * 
  * @author Bernhard Streit (Bernhard.Streit+github@gmail.com)
  */
-@Named
 @Aspect
+@Named
 public class ObservableBeanAspectMixin {
 
-  private static PropertyChangeSupportWithInterface propertyChangeSupportWithInterface;
+  private final Map<Object, PropertyChangeSupportWithInterface> weakReferences = new WeakHashMap<Object, PropertyChangeSupportWithInterface>();
 
 
   @DeclareMixin("@de.bstreit.java.springaop.observablebean.ObservableBean *")
-  public static IObservableBean createDelegate(Object object) {
-    propertyChangeSupportWithInterface = new PropertyChangeSupportWithInterface(object);
-    return propertyChangeSupportWithInterface;
+  public IObservableBean createDelegate(Object object) {
+    final PropertyChangeSupportWithInterface pcs = new PropertyChangeSupportWithInterface(object);
+    weakReferences.put(object, pcs);
+    return pcs;
   }
 
   /**
@@ -36,19 +39,29 @@ public class ObservableBeanAspectMixin {
    */
   @Around("execution (* @de.bstreit.java.springaop.observablebean.ObservableBean *.set*(..))")
   public void handleSetterInvocation(ProceedingJoinPoint pjp) throws Throwable {
-    propertyChangeSupportWithInterface.handleSetterInvocation(pjp);
+    // the target is the actual bean, with the set and get methods
+    final Object target = pjp.getTarget();
+
+    /*
+     * It seems that aop does not create the mixin unless at least one of the
+     * IObservableBean methods (e.g. addPropertyChangeListener) is actually
+     * called.
+     * 
+     * That certainly reduces overhead; we must, however, take into
+     * consideration that in this case, we do not have a
+     * PropertyChangeSupportWithInterface instance and need to call the setter
+     * ourself, by calling pjp.proceed().
+     */
+    final boolean mixinExists = weakReferences.containsKey(target);
+
+    if (mixinExists) {
+      final PropertyChangeSupportWithInterface mixin = weakReferences.get(target);
+      mixin.handleSetterInvocation(pjp);
+    } else {
+      // No listeners at all, simply call setter without firing property change
+      // events
+      pjp.proceed();
+    }
+
   }
-
-  /**
-   * @ Before(
-   * "execution (* @ de.bstreit.java.springaop.observablebean.ObservableBean *.set*(..))"
-   * )
-   */
-
-  // @DeclareMixin(value =
-  // "@de.bstreit.java.springaop.observablebean.ObservableBean *", defaultImpl =
-  // PropertyChangeSupportWithInterface.class)
-  // public static IObservableBean mixin;
-
-
 }

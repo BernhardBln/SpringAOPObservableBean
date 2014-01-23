@@ -4,7 +4,7 @@ import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 
 /**
- * This is an interface with all methods from the {@link PropertyChangeSupport}
+ * This is an interface with methods from the {@link PropertyChangeSupport}
  * class.
  * 
  * @author Bernhard Streit (Bernhard.Streit+github@gmail.com)
@@ -23,8 +23,6 @@ public interface IObservableBean {
 
   public PropertyChangeListener[] getPropertyChangeListeners(String propertyName);
 
-
   public boolean hasListeners(String propertyName);
-
 
 }
